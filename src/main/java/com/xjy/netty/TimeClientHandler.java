@@ -11,26 +11,36 @@ import io.netty.channel.ChannelHandlerContext;
  */
 public class TimeClientHandler extends ChannelHandlerAdapter {
 
-    private final ByteBuf firstMessage;
+//    private final ByteBuf firstMessage;
+
+    private byte[] req;
+
+    private int counter;
 
     public TimeClientHandler() {
-        byte[] req = "QUERY TIME ORDER".getBytes();
-        firstMessage = Unpooled.buffer(req.length);
-        firstMessage.writeBytes(req);
+        req = ("QUERY TIME ORDER" +  System.getProperty("line.separator")).getBytes();
+//        firstMessage = Unpooled.buffer(req.length);
+//        firstMessage.writeBytes(req);
     }
 
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
-        ctx.writeAndFlush(firstMessage);
+       ByteBuf message = null;
+       for (int i = 0; i < 100; i++){
+           message = Unpooled.buffer(req.length);
+           message.writeBytes(req);
+           ctx.writeAndFlush(message);
+       }
     }
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-        ByteBuf byteBuf = (ByteBuf) msg;
-        byte[] req = new byte[byteBuf.readableBytes()];
-        byteBuf.readBytes(req);
-        String body = new String(req,"UTF-8");
-        System.err.println("now is : " + body);
+//        ByteBuf byteBuf = (ByteBuf) msg;
+//        byte[] req = new byte[byteBuf.readableBytes()];
+//        byteBuf.readBytes(req);
+//        String body = new String(req,"UTF-8");
+        String body = (String) msg;
+        System.err.println("now is : " + body + " ; the counter is : " + ++counter);
     }
 
     @Override
