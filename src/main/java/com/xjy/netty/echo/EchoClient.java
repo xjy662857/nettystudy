@@ -1,6 +1,8 @@
-package com.xjy.netty;
+package com.xjy.netty.echo;
 
 import io.netty.bootstrap.Bootstrap;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
@@ -8,17 +10,17 @@ import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
-import io.netty.handler.codec.LineBasedFrameDecoder;
+import io.netty.handler.codec.DelimiterBasedFrameDecoder;
 import io.netty.handler.codec.string.StringDecoder;
 
 /**
  * @author xjy
- * @Date 2020/7/14 13:41
+ * @Date 2020/7/20 14:27
  */
-public class TimeClient {
+public class EchoClient {
 
-    public void connect(int port, String host) {
-        //配置客户端线程组
+    public void connect(int port, String host) throws Exception{
+        //配置客户端NIO
         EventLoopGroup group = new NioEventLoopGroup();
         try {
             Bootstrap bootstrap = new Bootstrap();
@@ -26,32 +28,29 @@ public class TimeClient {
                     .option(ChannelOption.TCP_NODELAY, true)
                     .handler(new ChannelInitializer<SocketChannel>() {
                         @Override
-                        protected void initChannel(SocketChannel channel) {
-                            channel.pipeline().addLast(new LineBasedFrameDecoder(1024));
-                            channel.pipeline().addLast(new StringDecoder());
-                            channel.pipeline().addLast(new TimeClientHandler());
+                        protected void initChannel(SocketChannel ch) {
+                            ByteBuf byteBuf = Unpooled.copiedBuffer("$_".getBytes());
+                            ch.pipeline().addLast(new DelimiterBasedFrameDecoder(1024, byteBuf));
+                            ch.pipeline().addLast(new StringDecoder());
+                            ch.pipeline().addLast(new EchoClientHandler());
                         }
                     });
-            //发起异步链接操作
             ChannelFuture future = bootstrap.connect(host, port).sync();
-            //等待客户端链路关闭
-            future.channel().closeFuture().sync();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }finally {
+            future.channel().close().sync();
+        } finally {
             group.shutdownGracefully();
         }
     }
 
-    public static void main(String[] args) {
-        int port  = 8080;
-        if (args != null && args.length > 0){
+    public static void main(String[] args) throws Exception{
+        int port = 8080;
+        if (args != null && args.length > 0) {
             try {
                 port = Integer.valueOf(args[0]);
             }catch (Exception e){
-
+                e.printStackTrace();
             }
         }
-        new TimeClient().connect(port,"127.0.0.1");
+        new EchoClient().connect(port,"127.0.0.1");
     }
 }
